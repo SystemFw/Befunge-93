@@ -9,8 +9,8 @@ object primitives {
 
     def op(f: (A, A) => A)(implicit ev: Monad[F]): F[Unit] =
       for {
-        a <- pop
         b <- pop
+        a <- pop
         _ <- push(f(a, b))
       } yield ()
   }
