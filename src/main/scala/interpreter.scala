@@ -25,13 +25,10 @@ object interpreter {
     def push(a: Int): F[Unit] =
       StateT.modify(_.onStack(_.push(a)))
 
+    // NOTE: The spec prescribes returning 0 when popping from an empty stack
     def pop: F[Int] = StateT { ctx =>
-      val (e, newStack) = ctx.stack.pop
-
-      e match {
-        case Some(v) => EitherT.pure(ctx.onStack(_ => newStack) -> v)
-        case None => EitherT.leftT("Trying to pop from an empty stack ")
-      }
+      val (v, newStack) = ctx.stack.pop
+      EitherT.pure { ctx.onStack(_ => newStack) -> v.getOrElse(0) }
     }
   }
 
