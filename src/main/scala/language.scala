@@ -12,25 +12,27 @@ object language {
       S.push(n) *> M.advance
 
     def add: F[Unit] =
-      for {
-        a <- S.pop
-        b <- S.pop
-        _ <- S.push(a + b)
-        _ <- M.advance
-      } yield ()
+      S.op(_ + _) *> M.advance
+
+    def subtract: F[Unit] =
+      S.op(_ - _) *> M.advance
+
+    def multiply: F[Unit] =
+      S.op(_ * _) *> M.advance
+
+    def divide: F[Unit] =
+      S.op(_ / _) *> M.advance
+
+    def modulo: F[Unit] =
+      S.op(_ % _) *> M.advance
 
     def not: F[Unit] =
-      S.pop.flatMap { v =>
-        if (v == 0) S.push(1) else S.push(0)
-      } *> M.advance
+      S.pop
+        .map(v => if (v != 0) 0 else 1)
+        .flatMap(S.push) *> M.advance
 
     def gt: F[Unit] =
-      for {
-        a <- S.pop
-        b <- S.pop
-        _ <- if (b > a) S.push(1) else S.push(0)
-        _ <- M.advance
-      } yield ()
+      S.op((x, y) => if (x > y) 1 else 0) *> M.advance
 
     def right: F[Unit] =
       M.changeDirection(motion.Right) *> M.advance
@@ -44,31 +46,48 @@ object language {
     def down: F[Unit] =
       M.changeDirection(motion.Down) *> M.advance
 
-    def rightOnZero: F[Unit] =
+    // random direction
+
+    def horizontalIf: F[Unit] =
       S.pop.flatMap { v =>
-        if (v == 0) right else left
+        if (v != 0) left else right
       } *> M.advance
 
-    def downOnZero: F[Unit] =
+    def verticalIf: F[Unit] =
       S.pop.flatMap { v =>
-        if (v == 0) down else up
+        if (v != 0) up else down
       } *> M.advance
 
-    def discardFirst: F[Unit] =
+    // stringMode
+
+    def dup: F[Unit] =
+      S.pop.flatMap(v => S.push(v) *> S.push(v))
+
+    def swap: F[Unit] =
+      for {
+        a <- S.pop
+        b <- S.pop
+        _ <- S.push(a)
+        _ <- S.push(b)
+      } yield ()
+
+    def discard: F[Unit] =
       S.pop.void *> M.advance
 
-    def printFirstAsInt: F[Unit] =
-      S.pop.flatMap { v =>
-        C.put(v.toString + " ")
-      } *> M.advance
+    def outputInt: F[Unit] =
+      S.pop
+        .map(_.toString + " ")
+        .flatMap(C.put) *> M.advance
 
-    def printFirstAsChar: F[Unit] =
-      S.pop.flatMap { v =>
-        C.put(v.toChar.toString + " ")
-      } *> M.advance
+    def outputAscii: F[Unit] =
+      S.pop
+        .map(_.toChar.toString + " ")
+        .flatMap(C.put) *> M.advance
 
-    def skipNextCell: F[Unit] =
+    def bridge: F[Unit] =
       M.advance *> M.advance
+
+    // get put inputValue inputChar
 
     def noOp: F[Unit] = F.unit *> M.advance
   }
@@ -84,18 +103,30 @@ object language {
       c match {
         case c if Character.isDigit(c) => BF.number(c.toInt).as(None)
         case '+' => BF.add.as(None)
+        case '-' => BF.subtract.as(None)
+        case '*' => BF.multiply.as(None)
+        case '/' => BF.divide.as(None)
+        case '%' => BF.modulo.as(None)
         case '!' => BF.not.as(None)
         case '`' => BF.gt.as(None)
         case '>' => BF.right.as(None)
         case '<' => BF.left.as(None)
         case '^' => BF.up.as(None)
         case 'v' => BF.down.as(None)
-        case '_' => BF.rightOnZero.as(None)
-        case '|' => BF.downOnZero.as(None)
-        case '$' => BF.discardFirst.as(None)
-        case '.' => BF.printFirstAsInt.as(None)
-        case ',' => BF.printFirstAsChar.as(None)
-        case '#' => BF.skipNextCell.as(None)
+        // case '?' => random motion
+        case '_' => BF.horizontalIf.as(None)
+        case '|' => BF.verticalIf.as(None)
+        // case '"' => toggle string mode
+        case ':' => BF.dup.as(None)
+        case '\\' => BF.swap.as(None)
+        case '$' => BF.discard.as(None)
+        case '.' => BF.outputInt.as(None)
+        case ',' => BF.outputAscii.as(None)
+        case '#' => BF.bridge.as(None)
+        // case 'g' => get
+        // case 'p' => put
+        // case '&' => input value
+        // case '~' => input character
         case '@' => End().some.pure[F]
         case ' ' => BF.noOp.as(None)
         case c => F.raiseError(s"invalid input! $c")

@@ -1,10 +1,19 @@
 package befunge
 
+import cats._, implicits._
+
 object primitives {
 
   trait Stack[F[_], A] {
     def pop: F[A]
     def push(a: A): F[Unit]
+
+    def op(f: (A, A) => A)(implicit ev: Monad[F]): F[Unit] =
+      for {
+        a <- pop
+        b <- pop
+        _ <- push(f(a, b))
+      } yield ()
   }
 
   trait Motion[F[_]] {
