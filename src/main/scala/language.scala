@@ -2,12 +2,12 @@ package befunge
 
 import cats._, implicits._
 
-import motion.{Direction, Up, Down, Left, Right}
+import motion.{Direction, Up, Down, Left, Right, Point}
 import primitives.{Console, Motion, Random, Stack}
 
 object language {
   case class Befunge[F[_]](implicit S: Stack[F, Int],
-                           M: Motion[F],
+                           M: Motion[F, Char],
                            C: Console[F],
                            R: Random[F, Direction],
                            F: Monad[F]) {
@@ -70,10 +70,10 @@ object language {
 
     def swap: F[Unit] =
       for {
-        a <- S.pop
         b <- S.pop
-        _ <- S.push(a)
+        a <- S.pop
         _ <- S.push(b)
+        _ <- S.push(a)
         _ <- M.advance
       } yield ()
 
@@ -93,7 +93,23 @@ object language {
     def bridge: F[Unit] =
       M.advance *> M.advance
 
-    // get put
+    def get: F[Unit] =
+      for {
+        y <- S.pop
+        x <- S.pop
+        v <- M.getAt(Point(x, y))
+        _ <- S.push(v.toInt)
+        _ <- M.advance
+      } yield ()
+
+    def put: F[Unit] =
+      for {
+        y <- S.pop
+        x <- S.pop
+        v <- S.pop
+        _ <- M.writeAt(Point(x, y), v.toChar)
+        _ <- M.advance
+      } yield ()
 
     def inputInt: F[Unit] =
       C.readInt.flatMap(S.push) *> M.advance
@@ -110,7 +126,7 @@ object language {
     def fromInstr[F[_]](c: Char)(implicit BF: Befunge[F],
                                  F: MonadError[F, Throwable],
                                  ev2: Stack[F, Int],
-                                 ev3: Motion[F],
+                                 ev3: Motion[F, Char],
                                  ev4: Console[F]): F[Option[End]] =
       c match {
         case c if Character.isDigit(c) => BF.number(c.toInt).as(None)
@@ -135,8 +151,8 @@ object language {
         case '.' => BF.outputInt.as(None)
         case ',' => BF.outputAscii.as(None)
         case '#' => BF.bridge.as(None)
-        // case 'g' => get
-        // case 'p' => put
+        case 'g' => BF.get.as(None)
+        case 'p' => BF.put.as(None)
         case '&' => BF.inputInt.as(None)
         case '~' => BF.inputChar.as(None)
         case '@' => End().some.pure[F]

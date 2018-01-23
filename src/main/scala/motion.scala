@@ -23,7 +23,12 @@ object motion {
           y = if (p.y >= 0) p.y % h.v else h.v + p.y
       )
 
-    def get: Option[A] = space.get(focus)
+    def get: Option[A] = getAt(focus)
+
+    def getAt(p: Point): Option[A] = space.get(p)
+
+    def writeAt(p: Point, f: A => A): Torus[A] =
+      copy(space = space.get(p).map(v => space + (p -> f(v))).getOrElse(space))
 
     def advance(d: Direction): Torus[A] = {
       val newFocus = focus |+| d.toPoint
