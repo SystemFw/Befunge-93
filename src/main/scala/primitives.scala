@@ -3,7 +3,6 @@ package befunge
 import cats._, implicits._
 
 object primitives {
-
   trait Stack[F[_], A] {
     def pop: F[A]
     def push(a: A): F[Unit]
@@ -27,4 +26,7 @@ object primitives {
     def readChar: F[Char]
   }
 
+  trait Random[F[_], A] {
+    def oneOf(n: List[A]): F[A]
+  }
 }

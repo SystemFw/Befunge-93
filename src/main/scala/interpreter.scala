@@ -3,10 +3,11 @@ package befunge
 import cats._, data._, implicits._
 import cats.effect.IO
 import scala.io.StdIn
+import scala.util.{Random => SRand}
 
 import motion.{Direction, Right, Torus}
 import stack.Stack
-import primitives.{Stack => StackLang, Motion, Console}
+import primitives.{Stack => StackLang, Motion, Console, Random}
 import language.Befunge
 
 object interpreter {
@@ -45,18 +46,18 @@ object interpreter {
   // TODO take the input stream as an argument?
   // have it in the context perhaps?
   def consoleForF: Console[F] = new Console[F] {
-    def put(s: String): F[Unit] =
-      StateT.liftF(IO(println(s)))
+    def put(s: String): F[Unit] = StateT.liftF(IO(println(s)))
+    def readChar: F[Char] = StateT.liftF(IO(StdIn.readChar))
+    def readInt: F[Int] = StateT.liftF(IO(StdIn.readInt))
+  }
 
-    def readChar: F[Char] =
-      StateT.liftF(IO(StdIn.readChar))
-
-    def readInt: F[Int] =
-      StateT.liftF(IO(StdIn.readInt))
+  def randomForF: Random[F, Direction] = new Random[F, Direction] {
+    def oneOf(n: List[Direction]): F[Direction] =
+      StateT.liftF(IO(SRand.shuffle(n).head))
   }
 
   def befungeForF: Befunge[F] =
-    Befunge[F]()(stackForF, motionForF, consoleForF, implicitly)
+    Befunge[F]()(stackForF, motionForF, consoleForF, randomForF, implicitly)
 
   def runLoop: F[Unit] = {
     implicit def s = stackForF

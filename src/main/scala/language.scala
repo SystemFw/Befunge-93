@@ -1,12 +1,15 @@
 package befunge
 
 import cats._, implicits._
-import primitives.{Console, Motion, Stack}
+
+import motion.{Direction, Up, Down, Left, Right}
+import primitives.{Console, Motion, Random, Stack}
 
 object language {
   case class Befunge[F[_]](implicit S: Stack[F, Int],
                            M: Motion[F],
                            C: Console[F],
+                           R: Random[F, Direction],
                            F: Monad[F]) {
     def number(n: Int): F[Unit] =
       S.push(n) *> M.advance
@@ -35,18 +38,20 @@ object language {
       S.op((x, y) => if (x > y) 1 else 0) *> M.advance
 
     def right: F[Unit] =
-      M.changeDirection(motion.Right) *> M.advance
+      M.changeDirection(Right) *> M.advance
 
     def left: F[Unit] =
-      M.changeDirection(motion.Left) *> M.advance
+      M.changeDirection(Left) *> M.advance
 
     def up: F[Unit] =
-      M.changeDirection(motion.Up) *> M.advance
+      M.changeDirection(Up) *> M.advance
 
     def down: F[Unit] =
-      M.changeDirection(motion.Down) *> M.advance
+      M.changeDirection(Down) *> M.advance
 
-    // random direction
+    def random: F[Unit] =
+      R.oneOf(List(Up, Down, Left, Right))
+        .flatMap(M.changeDirection) *> M.advance
 
     def horizontalIf: F[Unit] =
       S.pop.flatMap { v =>
@@ -120,7 +125,7 @@ object language {
         case '<' => BF.left.as(None)
         case '^' => BF.up.as(None)
         case 'v' => BF.down.as(None)
-        // case '?' => random motion
+        case '?' => BF.random.as(None)
         case '_' => BF.horizontalIf.as(None)
         case '|' => BF.verticalIf.as(None)
         // case '"' => toggle string mode
