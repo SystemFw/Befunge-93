@@ -13,17 +13,19 @@ import language.Befunge
 object interpreter {
 
   case class Ctx(space: Torus[Char] = Torus.empty[Char],
-                 direction: Direction = Right,
-                 stack: Stack[Int] = Stack.empty[Int]) {
+    direction: Direction = Right,
+    stack: Stack[Int] = Stack.empty[Int],
+  stringModeOn: Boolean = false) {
     def onSpace(f: Torus[Char] => Torus[Char]) = copy(space = f(this.space))
     def onDirection(f: Direction => Direction) =
       copy(direction = f(this.direction))
+    def onStringModeOn(f: Boolean => Boolean) = copy(stringModeOn = f(this.stringModeOn))
     def onStack(f: Stack[Int] => Stack[Int]) = copy(stack = f(this.stack))
   }
 
   type F[A] = StateT[IO, Ctx, A]
 
-  // NOTE: The spec prescribes returning 0 when popping from an empty stack
+  /* NOTE: The spec prescribes returning 0 when popping from an empty stack */
   def stackForF: StackLang[F, Int] = new StackLang[F, Int] {
     def push(a: Int): F[Unit] =
       StateT.modify(_.onStack(_.push(a)))
@@ -62,7 +64,10 @@ object interpreter {
   }
 
   def befungeForF: Befunge[F] =
-    Befunge[F]()(stackForF, spaceForF, consoleForF, randomForF, implicitly)
+    new Befunge[F]()(stackForF, spaceForF, consoleForF, randomForF, implicitly) {
+      def stringMode: F[Unit] =
+        StateT.modify[IO, Ctx](_.onStringModeOn(!_)) *> spaceForF.advance
+    }
 
   def runLoop: F[Unit] = {
     implicit def st = stackForF
@@ -71,9 +76,16 @@ object interpreter {
     implicit def bf = befungeForF
 
     for {
-      instr <- StateT.get[IO, Ctx].map(_.space.get.getOrElse(' '))
-      prog <- Befunge.fromInstr[F](instr)
-      _ <- if (prog.isDefined) ().pure[F] else runLoop
+      ctx <-  StateT.get[IO, Ctx]
+      instr = ctx.space.get.getOrElse(' ')
+      prog = if(ctx.stringModeOn) Befunge.stringMode[F](instr) else Befunge.fromInstr[F](instr)
+      res <- prog
+      _ <- if (res.isDefined) ().pure[F] else runLoop
     } yield ()
   }
+
+  /* As per the spec,  programs always start at origin, hence we trim */
+  def apply(input: String): IO[Unit] =
+    runLoop.runA(Ctx(space = Torus.fromString(input.trim, identity)))
 }
+

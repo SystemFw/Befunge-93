@@ -6,7 +6,7 @@ import space.{Direction, Up, Down, Left, Right, Point}
 import primitives.{Console, Space, Random, Stack}
 
 object language {
-  case class Befunge[F[_]](implicit ST: Stack[F, Int],
+  abstract class Befunge[F[_]](implicit ST: Stack[F, Int],
                            S: Space[F, Char],
                            C: Console[F],
                            R: Random[F, Direction],
@@ -63,7 +63,7 @@ object language {
         if (v != 0) up else down
       } *> S.advance
 
-    // stringMode
+    def stringMode: F[Unit]
 
     def dup: F[Unit] =
       ST.pop.flatMap(v => ST.push(v) *> ST.push(v)) *> S.advance
@@ -144,7 +144,7 @@ object language {
         case '?' => BF.random.as(None)
         case '_' => BF.horizontalIf.as(None)
         case '|' => BF.verticalIf.as(None)
-        // case '"' => toggle string mode
+        case '"' => BF.stringMode.as(None)
         case ':' => BF.dup.as(None)
         case '\\' => BF.swap.as(None)
         case '$' => BF.discard.as(None)
@@ -158,6 +158,16 @@ object language {
         case '@' => End().some.pure[F]
         case ' ' => BF.noOp.as(None)
         case c => F.raiseError(new Exception(s"invalid input! $c"))
+      }
+
+    def stringMode[F[_]](c: Char)(implicit BF: Befunge[F],
+                                  F: MonadError[F, Throwable],
+                                  ev2: Stack[F, Int],
+                                  ev3: Space[F, Char],
+      ev4: Console[F]): F[Option[End]] =
+      c match {
+        case '"' => BF.stringMode.as(None)
+        case c => BF.number(c.toInt).as(None)
       }
   }
 }
