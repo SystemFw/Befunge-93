@@ -7,10 +7,10 @@ import primitives.{Console, Space, Random, Stack}
 
 object language {
   abstract class Befunge[F[_]](implicit ST: Stack[F, Int],
-                           S: Space[F, Char],
-                           C: Console[F],
-                           R: Random[F, Direction],
-                           F: Monad[F]) {
+                               S: Space[F, Char],
+                               C: Console[F],
+                               R: Random[F, Direction],
+                               F: Monad[F]) {
     def number(n: Int): F[Unit] =
       ST.push(n) *> S.advance
 
@@ -121,42 +121,44 @@ object language {
   }
 
   object Befunge {
-    case class End()
+    sealed trait Running
+    case object Continue extends Running
+    case object Stop extends Running
 
     def fromInstr[F[_]](c: Char)(implicit BF: Befunge[F],
                                  F: MonadError[F, Throwable],
                                  ev2: Stack[F, Int],
                                  ev3: Space[F, Char],
-                                 ev4: Console[F]): F[Option[End]] =
+                                 ev4: Console[F]): F[Running] =
       c match {
-        case c if Character.isDigit(c) => BF.number(c.toInt).as(None)
-        case '+' => BF.add.as(None)
-        case '-' => BF.subtract.as(None)
-        case '*' => BF.multiply.as(None)
-        case '/' => BF.divide.as(None)
-        case '%' => BF.modulo.as(None)
-        case '!' => BF.not.as(None)
-        case '`' => BF.gt.as(None)
-        case '>' => BF.right.as(None)
-        case '<' => BF.left.as(None)
-        case '^' => BF.up.as(None)
-        case 'v' => BF.down.as(None)
-        case '?' => BF.random.as(None)
-        case '_' => BF.horizontalIf.as(None)
-        case '|' => BF.verticalIf.as(None)
-        case '"' => BF.stringMode.as(None)
-        case ':' => BF.dup.as(None)
-        case '\\' => BF.swap.as(None)
-        case '$' => BF.discard.as(None)
-        case '.' => BF.outputInt.as(None)
-        case ',' => BF.outputAscii.as(None)
-        case '#' => BF.bridge.as(None)
-        case 'g' => BF.get.as(None)
-        case 'p' => BF.put.as(None)
-        case '&' => BF.inputInt.as(None)
-        case '~' => BF.inputChar.as(None)
-        case '@' => End().some.pure[F]
-        case ' ' => BF.noOp.as(None)
+        case c if Character.isDigit(c) => BF.number(c.toInt).as(Continue)
+        case '+' => BF.add.as(Continue)
+        case '-' => BF.subtract.as(Continue)
+        case '*' => BF.multiply.as(Continue)
+        case '/' => BF.divide.as(Continue)
+        case '%' => BF.modulo.as(Continue)
+        case '!' => BF.not.as(Continue)
+        case '`' => BF.gt.as(Continue)
+        case '>' => BF.right.as(Continue)
+        case '<' => BF.left.as(Continue)
+        case '^' => BF.up.as(Continue)
+        case 'v' => BF.down.as(Continue)
+        case '?' => BF.random.as(Continue)
+        case '_' => BF.horizontalIf.as(Continue)
+        case '|' => BF.verticalIf.as(Continue)
+        case '"' => BF.stringMode.as(Continue)
+        case ':' => BF.dup.as(Continue)
+        case '\\' => BF.swap.as(Continue)
+        case '$' => BF.discard.as(Continue)
+        case '.' => BF.outputInt.as(Continue)
+        case ',' => BF.outputAscii.as(Continue)
+        case '#' => BF.bridge.as(Continue)
+        case 'g' => BF.get.as(Continue)
+        case 'p' => BF.put.as(Continue)
+        case '&' => BF.inputInt.as(Continue)
+        case '~' => BF.inputChar.as(Continue)
+        case '@' => (Stop: Running).pure[F]
+        case ' ' => BF.noOp.as(Continue)
         case c => F.raiseError(new Exception(s"invalid input! $c"))
       }
 
@@ -164,10 +166,10 @@ object language {
                                   F: MonadError[F, Throwable],
                                   ev2: Stack[F, Int],
                                   ev3: Space[F, Char],
-      ev4: Console[F]): F[Option[End]] =
+                                  ev4: Console[F]): F[Running] =
       c match {
-        case '"' => BF.stringMode.as(None)
-        case c => BF.number(c.toInt).as(None)
+        case '"' => BF.stringMode.as(Continue)
+        case c => BF.number(c.toInt).as(Continue)
       }
   }
 }
