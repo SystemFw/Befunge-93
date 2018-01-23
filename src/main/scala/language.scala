@@ -96,7 +96,7 @@ object language {
     case class End()
 
     def fromInstr[F[_]](c: Char)(implicit BF: Befunge[F],
-                                 F: MonadError[F, String],
+                                 F: MonadError[F, Throwable],
                                  ev2: Stack[F, Int],
                                  ev3: Motion[F],
                                  ev4: Console[F]): F[Option[End]] =
@@ -129,7 +129,7 @@ object language {
         // case '~' => input character
         case '@' => End().some.pure[F]
         case ' ' => BF.noOp.as(None)
-        case c => F.raiseError(s"invalid input! $c")
+        case c => F.raiseError(new Exception(s"invalid input! $c"))
       }
   }
 }
