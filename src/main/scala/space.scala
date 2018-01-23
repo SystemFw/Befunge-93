@@ -3,7 +3,7 @@ package befunge
 import cats.Monoid
 import cats.implicits._
 
-object motion {
+object space {
   case class Width(v: Int)
   case class Height(v: Int)
 

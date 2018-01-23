@@ -1,7 +1,7 @@
 package befunge
 
 import cats._, implicits._
-import motion.{Direction, Point}
+import space.{Direction, Point}
 
 object primitives {
   trait Stack[F[_], A] {
@@ -16,7 +16,7 @@ object primitives {
       } yield ()
   }
 
-  trait Motion[F[_], A] {
+  trait Space[F[_], A] {
     def advance: F[Unit]
     def changeDirection(d: Direction): F[Unit]
     def getAt(p: Point): F[A]

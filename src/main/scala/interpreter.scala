@@ -5,9 +5,9 @@ import cats.effect.IO
 import scala.io.StdIn
 import scala.util.{Random => SRand}
 
-import motion.{Direction, Right, Torus, Point}
+import space.{Direction, Right, Torus, Point}
 import stack.Stack
-import primitives.{Stack => StackLang, Motion, Console, Random}
+import primitives.{Stack => StackLang, Space, Console, Random}
 import language.Befunge
 
 object interpreter {
@@ -27,20 +27,23 @@ object interpreter {
   def stackForF: StackLang[F, Int] = new StackLang[F, Int] {
     def push(a: Int): F[Unit] =
       StateT.modify(_.onStack(_.push(a)))
+
     def pop: F[Int] = StateT { ctx =>
       val (v, newStack) = ctx.stack.pop
       IO.pure { ctx.onStack(_ => newStack) -> v.getOrElse(0) }
     }
   }
 
-  def motionForF: Motion[F, Char] = new Motion[F, Char] {
-    def advance: F[Unit] = StateT.modify { ctx =>
-      ctx.onSpace(_.advance(ctx.direction))
-    }
+  def spaceForF: Space[F, Char] = new Space[F, Char] {
+    def advance: F[Unit] =
+      StateT.modify(ctx => ctx.onSpace(_.advance(ctx.direction)))
+
     def changeDirection(d: Direction): F[Unit] =
       StateT.modify(_.onDirection(_ => d))
+
     def getAt(p: Point): F[Char] =
       StateT.get[IO, Ctx].map(_.space.getAt(p).getOrElse(' '))
+
     def writeAt(p: Point, v: Char): F[Unit] =
       StateT.modify(_.onSpace(_.writeAt(p, _ => v)))
   }
@@ -59,11 +62,11 @@ object interpreter {
   }
 
   def befungeForF: Befunge[F] =
-    Befunge[F]()(stackForF, motionForF, consoleForF, randomForF, implicitly)
+    Befunge[F]()(stackForF, spaceForF, consoleForF, randomForF, implicitly)
 
   def runLoop: F[Unit] = {
-    implicit def s = stackForF
-    implicit def m = motionForF
+    implicit def st = stackForF
+    implicit def s = spaceForF
     implicit def c = consoleForF
     implicit def bf = befungeForF
 

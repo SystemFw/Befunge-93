@@ -1,7 +1,7 @@
 package befunge
 
 object yo {
-  import motion._, interpreter._
+  import space._, interpreter._
   import cats._, implicits._
 
   def m(s: String) = {

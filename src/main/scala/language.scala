@@ -2,122 +2,122 @@ package befunge
 
 import cats._, implicits._
 
-import motion.{Direction, Up, Down, Left, Right, Point}
-import primitives.{Console, Motion, Random, Stack}
+import space.{Direction, Up, Down, Left, Right, Point}
+import primitives.{Console, Space, Random, Stack}
 
 object language {
-  case class Befunge[F[_]](implicit S: Stack[F, Int],
-                           M: Motion[F, Char],
+  case class Befunge[F[_]](implicit ST: Stack[F, Int],
+                           S: Space[F, Char],
                            C: Console[F],
                            R: Random[F, Direction],
                            F: Monad[F]) {
     def number(n: Int): F[Unit] =
-      S.push(n) *> M.advance
+      ST.push(n) *> S.advance
 
     def add: F[Unit] =
-      S.op(_ + _) *> M.advance
+      ST.op(_ + _) *> S.advance
 
     def subtract: F[Unit] =
-      S.op(_ - _) *> M.advance
+      ST.op(_ - _) *> S.advance
 
     def multiply: F[Unit] =
-      S.op(_ * _) *> M.advance
+      ST.op(_ * _) *> S.advance
 
     def divide: F[Unit] =
-      S.op(_ / _) *> M.advance
+      ST.op(_ / _) *> S.advance
 
     def modulo: F[Unit] =
-      S.op(_ % _) *> M.advance
+      ST.op(_ % _) *> S.advance
 
     def not: F[Unit] =
-      S.pop
+      ST.pop
         .map(v => if (v != 0) 0 else 1)
-        .flatMap(S.push) *> M.advance
+        .flatMap(ST.push) *> S.advance
 
     def gt: F[Unit] =
-      S.op((x, y) => if (x > y) 1 else 0) *> M.advance
+      ST.op((x, y) => if (x > y) 1 else 0) *> S.advance
 
     def right: F[Unit] =
-      M.changeDirection(Right) *> M.advance
+      S.changeDirection(Right) *> S.advance
 
     def left: F[Unit] =
-      M.changeDirection(Left) *> M.advance
+      S.changeDirection(Left) *> S.advance
 
     def up: F[Unit] =
-      M.changeDirection(Up) *> M.advance
+      S.changeDirection(Up) *> S.advance
 
     def down: F[Unit] =
-      M.changeDirection(Down) *> M.advance
+      S.changeDirection(Down) *> S.advance
 
     def random: F[Unit] =
       R.oneOf(List(Up, Down, Left, Right))
-        .flatMap(M.changeDirection) *> M.advance
+        .flatMap(S.changeDirection) *> S.advance
 
     def horizontalIf: F[Unit] =
-      S.pop.flatMap { v =>
+      ST.pop.flatMap { v =>
         if (v != 0) left else right
-      } *> M.advance
+      } *> S.advance
 
     def verticalIf: F[Unit] =
-      S.pop.flatMap { v =>
+      ST.pop.flatMap { v =>
         if (v != 0) up else down
-      } *> M.advance
+      } *> S.advance
 
     // stringMode
 
     def dup: F[Unit] =
-      S.pop.flatMap(v => S.push(v) *> S.push(v)) *> M.advance
+      ST.pop.flatMap(v => ST.push(v) *> ST.push(v)) *> S.advance
 
     def swap: F[Unit] =
       for {
-        b <- S.pop
-        a <- S.pop
-        _ <- S.push(b)
-        _ <- S.push(a)
-        _ <- M.advance
+        b <- ST.pop
+        a <- ST.pop
+        _ <- ST.push(b)
+        _ <- ST.push(a)
+        _ <- S.advance
       } yield ()
 
     def discard: F[Unit] =
-      S.pop.void *> M.advance
+      ST.pop.void *> S.advance
 
     def outputInt: F[Unit] =
-      S.pop
+      ST.pop
         .map(_.toString + " ")
-        .flatMap(C.put) *> M.advance
+        .flatMap(C.put) *> S.advance
 
     def outputAscii: F[Unit] =
-      S.pop
+      ST.pop
         .map(_.toChar.toString + " ")
-        .flatMap(C.put) *> M.advance
+        .flatMap(C.put) *> S.advance
 
     def bridge: F[Unit] =
-      M.advance *> M.advance
+      S.advance *> S.advance
 
     def get: F[Unit] =
       for {
-        y <- S.pop
-        x <- S.pop
-        v <- M.getAt(Point(x, y))
-        _ <- S.push(v.toInt)
-        _ <- M.advance
+        y <- ST.pop
+        x <- ST.pop
+        v <- S.getAt(Point(x, y))
+        _ <- ST.push(v.toInt)
+        _ <- S.advance
       } yield ()
 
     def put: F[Unit] =
       for {
-        y <- S.pop
-        x <- S.pop
-        v <- S.pop
-        _ <- M.writeAt(Point(x, y), v.toChar)
-        _ <- M.advance
+        y <- ST.pop
+        x <- ST.pop
+        v <- ST.pop
+        _ <- S.writeAt(Point(x, y), v.toChar)
+        _ <- S.advance
       } yield ()
 
     def inputInt: F[Unit] =
-      C.readInt.flatMap(S.push) *> M.advance
+      C.readInt.flatMap(ST.push) *> S.advance
 
     def inputChar: F[Unit] =
-      C.readChar.flatMap(x => S.push(x.toInt)) *> M.advance
+      C.readChar.flatMap(x => ST.push(x.toInt)) *> S.advance
 
-    def noOp: F[Unit] = F.unit *> M.advance
+    def noOp: F[Unit] = F.unit *> S.advance
   }
 
   object Befunge {
@@ -126,7 +126,7 @@ object language {
     def fromInstr[F[_]](c: Char)(implicit BF: Befunge[F],
                                  F: MonadError[F, Throwable],
                                  ev2: Stack[F, Int],
-                                 ev3: Motion[F, Char],
+                                 ev3: Space[F, Char],
                                  ev4: Console[F]): F[Option[End]] =
       c match {
         case c if Character.isDigit(c) => BF.number(c.toInt).as(None)
