@@ -53,7 +53,6 @@ object interpreter {
     }
   }
 
-
   case class Ctx(space: Torus[Char] = Torus.empty[Char],
                  direction: Direction = Right,
                  stack: Stack[Int] = Stack.empty[Int],

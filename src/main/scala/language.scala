@@ -55,12 +55,12 @@ object language {
 
     def horizontalIf: F[Unit] =
       ST.pop.flatMap { v =>
-        if (v != 0) left else right
+        if (v != 0) S.changeDirection(Left) else S.changeDirection(Right)
       } *> S.advance
 
     def verticalIf: F[Unit] =
       ST.pop.flatMap { v =>
-        if (v != 0) up else down
+        if (v != 0) S.changeDirection(Up) else S.changeDirection(Down)
       } *> S.advance
 
     def stringMode: F[Unit]
