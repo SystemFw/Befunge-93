@@ -131,7 +131,9 @@ object language {
                                  ev3: Space[F, Char],
                                  ev4: Console[F]): F[Running] =
       c match {
-        case c if Character.isDigit(c) => BF.number(c.toInt).as(Continue)
+        case c if Character.isDigit(c) =>
+          // NOTE:  asDigit, not toInt, we don't want the ascii value
+          BF.number(c.asDigit).as(Continue)
         case '+' => BF.add.as(Continue)
         case '-' => BF.subtract.as(Continue)
         case '*' => BF.multiply.as(Continue)
