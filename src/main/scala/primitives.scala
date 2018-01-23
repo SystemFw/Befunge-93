@@ -23,6 +23,8 @@ object primitives {
 
   trait Console[F[_]] {
     def put(a: String): F[Unit]
+    def readInt: F[Int]
+    def readChar: F[Char]
   }
 
 }

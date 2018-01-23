@@ -2,6 +2,7 @@ package befunge
 
 import cats._, data._, implicits._
 import cats.effect.IO
+import scala.io.StdIn
 
 import motion.{Direction, Right, Torus}
 import stack.Stack
@@ -46,6 +47,12 @@ object interpreter {
   def consoleForF: Console[F] = new Console[F] {
     def put(s: String): F[Unit] =
       StateT.liftF(IO(println(s)))
+
+    def readChar: F[Char] =
+      StateT.liftF(IO(StdIn.readChar))
+
+    def readInt: F[Int] =
+      StateT.liftF(IO(StdIn.readInt))
   }
 
   def befungeForF: Befunge[F] =

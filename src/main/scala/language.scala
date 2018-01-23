@@ -61,7 +61,7 @@ object language {
     // stringMode
 
     def dup: F[Unit] =
-      S.pop.flatMap(v => S.push(v) *> S.push(v))
+      S.pop.flatMap(v => S.push(v) *> S.push(v)) *> M.advance
 
     def swap: F[Unit] =
       for {
@@ -69,6 +69,7 @@ object language {
         b <- S.pop
         _ <- S.push(a)
         _ <- S.push(b)
+        _ <- M.advance
       } yield ()
 
     def discard: F[Unit] =
@@ -87,7 +88,13 @@ object language {
     def bridge: F[Unit] =
       M.advance *> M.advance
 
-    // get put inputValue inputChar
+    // get put
+
+    def inputInt: F[Unit] =
+      C.readInt.flatMap(S.push) *> M.advance
+
+    def inputChar: F[Unit] =
+      C.readChar.flatMap(x => S.push(x.toInt)) *> M.advance
 
     def noOp: F[Unit] = F.unit *> M.advance
   }
@@ -125,8 +132,8 @@ object language {
         case '#' => BF.bridge.as(None)
         // case 'g' => get
         // case 'p' => put
-        // case '&' => input value
-        // case '~' => input character
+        case '&' => BF.inputInt.as(None)
+        case '~' => BF.inputChar.as(None)
         case '@' => End().some.pure[F]
         case ' ' => BF.noOp.as(None)
         case c => F.raiseError(new Exception(s"invalid input! $c"))
