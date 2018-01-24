@@ -117,7 +117,7 @@ abstract class Language[F[_]](implicit ST: Stack[F, Int],
   def inputChar: F[Unit] =
     C.readChar.flatMap(x => ST.push(x.toInt)) *> S.advance
 
-  def noOp: F[Unit] = F.unit *> S.advance
+  def noOp: F[Unit] = S.advance
 }
 
 object Language {
@@ -126,51 +126,48 @@ object Language {
   case object Stop extends Running
 
   def fromInstr[F[_]](c: Char)(implicit BF: Language[F],
-                               F: MonadError[F, Throwable],
-                               ev2: Stack[F, Int],
-                               ev3: Space[F, Char],
-                               ev4: Console[F]): F[Running] =
-    c match {
-      case c if Character.isDigit(c) =>
-        // NOTE:  asDigit, not toInt, we don't want the ascii value
-        BF.number(c.asDigit).as(Continue)
-      case '+' => BF.add.as(Continue)
-      case '-' => BF.subtract.as(Continue)
-      case '*' => BF.multiply.as(Continue)
-      case '/' => BF.divide.as(Continue)
-      case '%' => BF.modulo.as(Continue)
-      case '!' => BF.not.as(Continue)
-      case '`' => BF.gt.as(Continue)
-      case '>' => BF.right.as(Continue)
-      case '<' => BF.left.as(Continue)
-      case '^' => BF.up.as(Continue)
-      case 'v' => BF.down.as(Continue)
-      case '?' => BF.random.as(Continue)
-      case '_' => BF.horizontalIf.as(Continue)
-      case '|' => BF.verticalIf.as(Continue)
-      case '"' => BF.stringMode.as(Continue)
-      case ':' => BF.dup.as(Continue)
-      case '\\' => BF.swap.as(Continue)
-      case '$' => BF.discard.as(Continue)
-      case '.' => BF.outputInt.as(Continue)
-      case ',' => BF.outputAscii.as(Continue)
-      case '#' => BF.bridge.as(Continue)
-      case 'g' => BF.get.as(Continue)
-      case 'p' => BF.put.as(Continue)
-      case '&' => BF.inputInt.as(Continue)
-      case '~' => BF.inputChar.as(Continue)
-      case '@' => (Stop: Running).pure[F]
-      case ' ' => BF.noOp.as(Continue)
-      case c => F.raiseError(new Exception(s"invalid input! $c"))
-    }
+                               F: MonadError[F, Throwable]): F[Running] = {
+    val tokens = Map(
+      '+' -> BF.add,
+      '-' -> BF.subtract,
+      '*' -> BF.multiply,
+      '/' -> BF.divide,
+      '%' -> BF.modulo,
+      '!' -> BF.not,
+      '`' -> BF.gt,
+      '>' -> BF.right,
+      '<' -> BF.left,
+      '^' -> BF.up,
+      'v' -> BF.down,
+      '?' -> BF.random,
+      '_' -> BF.horizontalIf,
+      '|' -> BF.verticalIf,
+      '"' -> BF.stringMode,
+      ':' -> BF.dup,
+      '\\' -> BF.swap,
+      '$' -> BF.discard,
+      '.' -> BF.outputInt,
+      ',' -> BF.outputAscii,
+      '#' -> BF.bridge,
+      'g' -> BF.get,
+      'p' -> BF.put,
+      '&' -> BF.inputInt,
+      '~' -> BF.inputChar,
+      ' ' -> BF.noOp
+    )
+
+    val invalidToken = F.raiseError(new Exception(s"invalid input! $c"))
+
+    if (c == '@') (Stop: Running).pure[F]
+    else if (Character.isDigit(c))
+      // NOTE: asDigit, not toInt, we don't want the ascii value
+      BF.number(c.asDigit).as(Continue)
+    else tokens.get(c).getOrElse(invalidToken).as(Continue)
+  }
 
   def stringMode[F[_]](c: Char)(implicit BF: Language[F],
-                                F: MonadError[F, Throwable],
-                                ev2: Stack[F, Int],
-                                ev3: Space[F, Char],
-                                ev4: Console[F]): F[Running] =
-    c match {
-      case '"' => BF.stringMode.as(Continue)
-      case c => BF.number(c.toInt).as(Continue)
-    }
+                                ev: Functor[F]): F[Running] = {
+    if (c == '"') BF.stringMode
+    else BF.number(c.toInt)
+  }.as(Continue)
 }

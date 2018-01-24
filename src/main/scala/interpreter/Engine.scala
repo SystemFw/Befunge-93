@@ -12,12 +12,12 @@ object Engine {
   // Note = Ctx.F[A] = StateT[IO, Ctx, A]
 
   /* As per the spec,  programs always start at origin, hence we trim */
-  def apply(input: String, engine: StateT[IO, Ctx, Unit] = runLoop): IO[Unit] =
+  def apply(input: String, engine: Ctx.F[Unit] = runLoop): IO[Unit] =
     engine.runA(Ctx(space = Torus.fromString(input.trim, identity)))
 
   def runLoop: Ctx.F[Unit] = runStep {
     case Continue => runLoop
-    case Stop => ().pure[StateT[IO, Ctx, ?]]
+    case Stop => ().pure[Ctx.F]
   }
 
   def debugLoop: Ctx.F[Unit] = {
@@ -28,7 +28,7 @@ object Engine {
 
     runStep {
       case Continue => debug *> debugLoop
-      case Stop => debug *> ().pure[Ctx.F]
+      case Stop => ().pure[Ctx.F]
     }
   }
 

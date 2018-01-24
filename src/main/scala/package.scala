@@ -47,7 +47,7 @@ v,,,,,,"World!"<
 """
 
   // plays the less or more guessing game
-  // it also prints it in case you want to quit early
+  // it also prints the number at the start in case you want to quit early
   def lessOrMoreGame =
     """
 vv  <      <                                                                   
