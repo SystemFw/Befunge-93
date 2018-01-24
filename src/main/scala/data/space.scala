@@ -1,4 +1,5 @@
 package befunge
+package data
 
 import cats.Monoid
 import cats.implicits._

@@ -1,7 +1,9 @@
 package befunge
+package semantics
+
+import data.space.{Direction, Point}
 
 import cats._, implicits._
-import space.{Direction, Point}
 
 object primitives {
   trait Stack[F[_], A] {

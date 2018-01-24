@@ -1,8 +1,15 @@
-package befunge
+package object befunge {
+  import interpreter.Engine
+  import cats.effect.IO
 
-object examples {
+  def run(s: String): IO[Unit] =
+    Engine(s)
+
+  def debug(s: String): IO[Unit] =
+    Engine(s, Engine.debugLoop)
+
   // prints hello world
-  def hw = interpreter {
+  def hw =
     """
 >              v
 v  ,,,,,"Hello"<
@@ -10,42 +17,38 @@ v  ,,,,,"Hello"<
 v,,,,,,"World!"<
 >25*,@
    """
-  }.unsafeRunSync
 
   // also prints hello world, uglier, but shorter
-  def hw2 = interpreter {
- """
+  def hw2 =
+    """
 64+"!dlroW ,olleH">:#,_@
 """
-  }.unsafeRunSync
 
   // reads one char from stdIn, prints it to stdOut
-  def cat = interpreter {
-      """
+  def cat =
+    """
 ~:1+!#@_,
 """
-  }.unsafeRunSync
 
   // reads an integer, outputs its factorial
-  def factorial = interpreter {
+  def factorial =
     """
 &>:1-:v v *_$.@ 
  ^    _$>\:^
 """
-  }.unsafeRunSync
 
   // prints primes using the sieve of eratosthenes
-  def sieve = interpreter {
+  def sieve =
     """
 2>:3g" "-!v\  g30          <
  |!`"O":+1_:.:03p>03g+:"O"`|
  @               ^  p3\" ":<
 2 234567890123456789012345678901234567890123456789012345678901234567890123456789
 """
-  }.unsafeRunSync
 
   // plays the less or more guessing game
-  def lessOrMoreGame = interpreter {
+  // it also prints it in case you want to quit early
+  def lessOrMoreGame =
     """
 vv  <      <                                                                   
     2                                                                          
@@ -72,6 +75,5 @@ vv  <      <
   >*:.>0"!rebmun tupnI">:#,_$25*,:&:99p`|^<       _0"!niw uoY">:#,_$25*,@      
       ^         <                       >:99g01-*+^
 """
-  }.unsafeRunSync
 
 }
