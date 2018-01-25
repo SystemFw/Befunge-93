@@ -3,6 +3,34 @@
 A purely functional Befunge-93 interpreter, written in final tagless style.
 Showcasing the beauty and power of compositional design.
 
+## The interpreter
+
+Given a Befunge-93 program, usually expressed as a multiline string
+
+``` scala
+val helloWorld = 
+    """
+>              v
+v  ,,,,,"Hello"<
+>48*,          v
+v,,,,,,"World!"<
+>25*,@
+   """
+```
+
+you can run it to completion by calling `befunge.run(helloWorld)`, or
+step through it in debug mode with `befunge.debug(helloWorld)`. Note
+that both return a `cats.effect.IO]`, which describes their behaviour
+in a purely functional manner. You can compose the `IO` computations
+in a larger program, or, if you want to actually trigger their
+execution because you are in `main` or in the `repl`, call
+`.unsafeRunSync` on them.
+
+
+The `befunge` object also contains some example programs for you to
+try out.
+
+
 ## The language
 Befunge-93 is a stack-based, reflective, bidimensional esoteric programming language.
 The spec is [here](Befunge-93_spec.md)

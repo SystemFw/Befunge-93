@@ -1,9 +1,11 @@
 package befunge
 package semantics
 
+
 import data.space.{Direction, Point}
 
 import cats._, implicits._
+import cats.data.NonEmptyList
 
 object primitives {
   trait Stack[F[_], A] {
@@ -32,6 +34,6 @@ object primitives {
   }
 
   trait Random[F[_], A] {
-    def oneOf(n: List[A]): F[A]
+    def oneOf(n: NonEmptyList[A]): F[A]
   }
 }

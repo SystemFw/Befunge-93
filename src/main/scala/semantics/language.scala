@@ -5,6 +5,7 @@ import data.space.{Direction, Up, Down, Left, Right, Point}
 import primitives.{Console, Space, Random, Stack}
 
 import cats._, implicits._
+import cats.data.NonEmptyList
 
 abstract class Language[F[_]](implicit ST: Stack[F, Int],
                               S: Space[F, Char],
@@ -50,7 +51,7 @@ abstract class Language[F[_]](implicit ST: Stack[F, Int],
     S.changeDirection(Down) *> S.advance
 
   def random: F[Unit] =
-    R.oneOf(List(Up, Down, Left, Right))
+    R.oneOf(NonEmptyList.of(Up, Down, Left, Right))
       .flatMap(S.changeDirection) *> S.advance
 
   def horizontalIf: F[Unit] =

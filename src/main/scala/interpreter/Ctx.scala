@@ -71,8 +71,8 @@ object Ctx {
 
   implicit def randomI: Random[F, Direction] =
     new Random[F, Direction] {
-      def oneOf(n: List[Direction]): F[Direction] =
-        StateT.liftF(IO(SRand.shuffle(n).head))
+      def oneOf(n: NonEmptyList[Direction]): F[Direction] =
+        StateT.liftF(IO(SRand.shuffle(n.toList).head))
     }
 
   implicit def languageI: Language[F] =
