@@ -1,7 +1,6 @@
 package befunge
 package semantics
 
-
 import data.space.{Direction, Point}
 
 import cats._, implicits._

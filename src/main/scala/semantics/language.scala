@@ -7,6 +7,8 @@ import primitives.{Console, Space, Random, Stack}
 import cats._, implicits._
 import cats.data.NonEmptyList
 
+import Language._
+
 abstract class Language[F[_]](implicit ST: Stack[F, Int],
                               S: Space[F, Char],
                               C: Console[F],
@@ -32,11 +34,11 @@ abstract class Language[F[_]](implicit ST: Stack[F, Int],
 
   def not: F[Unit] =
     ST.pop
-      .map(v => if (v != 0) 0 else 1)
+      .map(v => (!v.toBoolean).toInt)
       .flatMap(ST.push) *> S.advance
 
   def gt: F[Unit] =
-    ST.op((x, y) => if (x > y) 1 else 0) *> S.advance
+    ST.op((x, y) => (x > y).toInt) *> S.advance
 
   def right: F[Unit] =
     S.changeDirection(Right) *> S.advance
@@ -56,12 +58,12 @@ abstract class Language[F[_]](implicit ST: Stack[F, Int],
 
   def horizontalIf: F[Unit] =
     ST.pop.flatMap { v =>
-      if (v != 0) S.changeDirection(Left) else S.changeDirection(Right)
+      if (v.toBoolean) S.changeDirection(Left) else S.changeDirection(Right)
     } *> S.advance
 
   def verticalIf: F[Unit] =
     ST.pop.flatMap { v =>
-      if (v != 0) S.changeDirection(Up) else S.changeDirection(Down)
+      if (v.toBoolean) S.changeDirection(Up) else S.changeDirection(Down)
     } *> S.advance
 
   def stringMode: F[Unit]
@@ -88,7 +90,7 @@ abstract class Language[F[_]](implicit ST: Stack[F, Int],
 
   def outputAscii: F[Unit] =
     ST.pop
-      .map(_.toChar.toString + " ")
+      .map(_.toAsciiChar.toString + " ")
       .flatMap(C.put) *> S.advance
 
   def bridge: F[Unit] =
@@ -99,7 +101,7 @@ abstract class Language[F[_]](implicit ST: Stack[F, Int],
       y <- ST.pop
       x <- ST.pop
       v <- S.getAt(Point(x, y))
-      _ <- ST.push(v.toInt)
+      _ <- ST.push(v.toAsciiInt)
       _ <- S.advance
     } yield ()
 
@@ -108,7 +110,7 @@ abstract class Language[F[_]](implicit ST: Stack[F, Int],
       y <- ST.pop
       x <- ST.pop
       v <- ST.pop
-      _ <- S.writeAt(Point(x, y), v.toChar)
+      _ <- S.writeAt(Point(x, y), v.toAsciiChar)
       _ <- S.advance
     } yield ()
 
@@ -116,7 +118,7 @@ abstract class Language[F[_]](implicit ST: Stack[F, Int],
     C.readInt.flatMap(ST.push) *> S.advance
 
   def inputChar: F[Unit] =
-    C.readChar.flatMap(x => ST.push(x.toInt)) *> S.advance
+    C.readChar.flatMap(x => ST.push(x.toAsciiInt)) *> S.advance
 
   def noOp: F[Unit] = S.advance
 }
@@ -160,15 +162,26 @@ object Language {
     val invalidToken = F.raiseError(new Exception(s"invalid input! $c"))
 
     if (c == '@') (Stop: Running).pure[F]
-    else if (Character.isDigit(c))
-      // NOTE: asDigit, not toInt, we don't want the ascii value
-      BF.number(c.asDigit).as(Continue)
-    else tokens.get(c).getOrElse(invalidToken).as(Continue)
+    else
+      c.toDigit
+        .map(BF.number)
+        .orElse(tokens.get(c))
+        .getOrElse(invalidToken)
+        .as(Continue)  
   }
 
   def stringMode[F[_]](c: Char)(implicit BF: Language[F],
                                 ev: Functor[F]): F[Running] = {
     if (c == '"') BF.stringMode
-    else BF.number(c.toInt)
+    else BF.number(c.toAsciiInt)
   }.as(Continue)
+
+  implicit class CharToAscii(c: Char) { def toAsciiInt: Int = c.toInt }
+  implicit class CharToDigit(c: Char) {
+    def toDigit: Option[Int] =
+      (Character isDigit c).guard[Option].as(c.asDigit)
+  }
+  implicit class AsciiToChar(i: Int) { def toAsciiChar: Char = i.toChar }
+  implicit class IntToBoolean(i: Int) { def toBoolean = i != 0 }
+  implicit class BooleeanToInt(b: Boolean) { def toInt = if (b) 1 else 0 }
 }
