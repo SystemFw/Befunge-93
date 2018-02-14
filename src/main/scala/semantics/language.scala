@@ -9,6 +9,10 @@ import cats.data.NonEmptyList
 
 import Language._
 
+/* In general, you want to put the constraints on the methods, not on the
+ * class.  In this case the parser needs to be able to parse the full
+ * language, so it doesn't matter that much.
+ */
 abstract class Language[F[_]](implicit ST: Stack[F, Int],
                               S: Space[F, Char],
                               C: Console[F],
